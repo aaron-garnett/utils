@@ -75,10 +75,11 @@ class AzureSqlConnection():
         if self.username is None or self.password is None:
             logger.debug('Using passwordless authentication.')
             connection_string = f'SERVER=tcp:{self.server},1433;DATABASE={self.database};Encrypt=yes'
+            logger.debug(f'Connection string: {connection_string}')
         else:
             logger.debug('Using password-based authentication.')
             connection_string = f'SERVER=tcp:{self.server},1433;DATABASE={self.database};UID={self.username};PWD={self.password};Encrypt=yes;TrustServerCertificate=no'
-        logger.debug(f'Connection string: {connection_string.replace(self.password, "********")}')
+            logger.debug(f'Connection string: {connection_string.replace(self.password, "********")}')
         return connection_string
 
     def auth_method(self) -> AuthMethod:

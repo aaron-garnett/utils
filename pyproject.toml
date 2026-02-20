@@ -1,6 +1,6 @@
 [project]
 name = "utils"
-version = "0.3.1"
+version = "0.3.2"
 description = "Reusable infrastructure utilities (database connectors, Google Sheets, etc.)"
 requires-python = ">=3.12"
 dependencies = [
