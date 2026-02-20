@@ -132,8 +132,8 @@ class AzureSqlConnection():
         if self.mssql_connection is None:
             raise ConnectionError('No active connection to test.')
         sql = "SELECT current_timestamp timestamp;"
-        results = self.execute_sql(sql, return_results=True)
-        for row, _ in results:
+        results, description = self.execute_sql(sql, return_results=True)
+        for row in results:
             logger.debug(str(row[0]))
         return
 
