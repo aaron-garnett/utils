@@ -11,8 +11,8 @@ dependencies = [
     "sshtunnel>=0.4.0",
     "paramiko==3.5.1",
     "pygsheets>=2.0.6",
-    "pandas==2.1.4",
-    "numpy==1.26.4",
+    "pandas>=2.1.4",
+    "numpy>=1.26.4",
     "python-dotenv",
     "sqlalchemy>=2.0",
 ]
