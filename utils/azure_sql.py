@@ -1,12 +1,12 @@
 import mssql_python
-from mssql_python.exceptions import NotSupportedError, IntegrityError, DataError, ProgrammingError, OperationalError
+from mssql_python.exceptions import NotSupportedError, IntegrityError, DataError, ProgrammingError, OperationalError  # noqa: F401
 from azure import identity
 import struct
 import pandas as pd
-from typing import Any, List, Sequence
+from typing import Any, Sequence
 import time
 import logging
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, func
+from sqlalchemy import create_engine
 import sqlalchemy
 from enum import Enum, auto
 from sqlalchemy.orm import declarative_base
@@ -158,7 +158,7 @@ class AzureSqlConnection():
             self.execute_sql(sql, data=batch_data)
         return
 
-    def direct_read(self, table_name: str) -> list[dict[str, Any]]:
+    def read_table(self, table_name: str) -> pd.DataFrame:
         table_name = f'{self.schema}.{table_name}'
         logger.debug(f'Starting direct read from table {table_name}...')
         if self.mssql_connection is None:
@@ -172,10 +172,6 @@ class AzureSqlConnection():
             for i, column_name in enumerate(columns):
                 row_dict[column_name] = row[i]
             rows.append(row_dict)
-        return rows
-
-    def direct_read_to_df(self, table_name: str) -> pd.DataFrame:
-        rows = self.direct_read(table_name)
         df = pd.DataFrame(rows)
         return df
 
