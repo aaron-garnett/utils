@@ -7,7 +7,7 @@ from typing import Any, Sequence
 
 def _validate_identifier(name: str) -> str:
     """Validate that a SQL identifier (table, column) contains only safe characters."""
-    if not re.match(r'^[\w\s.]+$', name):
+    if not re.match(r'^[\w\s./]+$', name):
         raise ValueError(f"Invalid SQL identifier: {name!r}")
     return name
 
