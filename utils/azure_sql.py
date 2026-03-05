@@ -6,10 +6,18 @@ import pandas as pd
 from typing import Any, Sequence
 import time
 import logging
+import re
 from sqlalchemy import create_engine
 import sqlalchemy
 from enum import Enum, auto
 from sqlalchemy.orm import declarative_base
+
+
+def _validate_identifier(name: str) -> str:
+    """Validate that a SQL identifier (table, column, schema) contains only safe characters."""
+    if not re.match(r'^[\w\s.]+$', name):
+        raise ValueError(f"Invalid SQL identifier: {name!r}")
+    return name
 
 Base = declarative_base()
 
@@ -138,6 +146,9 @@ class AzureSqlConnection():
         return
 
     def write_table(self, df: pd.DataFrame, table_name: str, create: bool=True, fast: bool=True, max_rows: int=10000, columns: list[str] | None = None) -> None:
+        _validate_identifier(table_name)
+        if self.schema:
+            _validate_identifier(self.schema)
         table_name = f'{self.schema}.{table_name}'
         logger.debug(f'Starting direct write to table {table_name} (create={create}, fast={fast}, max_rows={max_rows})...')
         if self.mssql_connection is None:
@@ -159,6 +170,9 @@ class AzureSqlConnection():
         return
 
     def read_table(self, table_name: str) -> pd.DataFrame:
+        _validate_identifier(table_name)
+        if self.schema:
+            _validate_identifier(self.schema)
         table_name = f'{self.schema}.{table_name}'
         logger.debug(f'Starting direct read from table {table_name}...')
         if self.mssql_connection is None:
@@ -202,12 +216,16 @@ class AzureSqlConnection():
                 return [], []
 
     def drop_table(self, table_name: str) -> None:
+        _validate_identifier(table_name)
         logger.debug(f'Starting table drop for {table_name}...')
         sql = f"DROP TABLE IF EXISTS {table_name};"
         self.execute_sql(sql)
         return
 
-    def create_table(self, table_name: str, columns: list[tuple[str, str]]) -> None:
+    def create_table(self, table_name: str, columns: list[str]) -> None:
+        _validate_identifier(table_name)
+        for column in columns:
+            _validate_identifier(column)
         logger.debug(f'Starting table creation for {table_name}...')
         sql: str = f"CREATE TABLE {table_name} (\n"
         for column in columns:
@@ -215,3 +233,21 @@ class AzureSqlConnection():
         sql += ");"
         self.execute_sql(sql)
         return
+
+    def get_columns(self) -> 'pd.DataFrame':
+        """Return a DataFrame with metadata for all columns in the current schema."""
+        if self.schema:
+            _validate_identifier(self.schema)
+        sql = f"""
+            SELECT TABLE_NAME as [table], COLUMN_NAME as column_name,
+                   DATA_TYPE as datatype, COLUMN_KEY as [key]
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = '{self.schema}'
+            ORDER BY TABLE_NAME, ORDINAL_POSITION;
+        """
+        results, description = self.execute_sql(sql, return_results=True)
+        columns = [item[0] for item in description]
+        rows: list[dict] = []
+        for row in results:
+            rows.append(dict(zip(columns, row)))
+        return pd.DataFrame(rows)

@@ -1,6 +1,6 @@
 [project]
 name = "utils"
-version = "0.3.4"
+version = "0.4.0"
 description = "Reusable infrastructure utilities (database connectors, Google Sheets, etc.)"
 requires-python = ">=3.12"
 dependencies = [
@@ -15,6 +15,20 @@ dependencies = [
     "numpy>=1.26.4",
     "python-dotenv",
     "sqlalchemy>=2.0",
+    "bump-my-version>=1.2.7",
+]
+
+[project.optional-dependencies]
+snowflake = [
+    "snowflake-connector-python>=3.0",
+    "snowflake-connector-python[pandas]>=3.0",
+    "cryptography>=41.0",
+    "sqlparse>=0.5.0",
+]
+bigquery = [
+    "google-cloud-bigquery>=3.0",
+    "google-cloud-bigquery-storage>=2.0",
+    "pyarrow>=10.0",
 ]
 
 [build-system]

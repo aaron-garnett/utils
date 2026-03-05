@@ -1,6 +1,13 @@
 import pandas as pd
 import numpy as np
-import sqlite3
+import re
+
+
+def _validate_identifier(name: str) -> str:
+    """Validate that a SQL identifier (table, column, schema) contains only safe characters."""
+    if not re.match(r'^[\w\s.]+$', name):
+        raise ValueError(f"Invalid SQL identifier: {name!r}")
+    return name
 
 
 def compare_dataframes(df1, df2):
@@ -135,54 +142,21 @@ def find_primary_key(connection, foreign_key_table, foreign_key_column, schema_c
 
 
 def get_column_values(connection, table, column, value=None):
-    """Get all values from a specific column in a table, optionally filtering by a specific value."""
+    """Get all values from a specific column in a table, optionally filtering by a specific value.
+
+    Note: uses '?' parameter placeholder; compatible with SQLite and Azure SQL (mssql_python).
+    For MySQL connections use MySqlConnection.read_table() instead.
+    """
+    _validate_identifier(table)
+    _validate_identifier(column)
     cur = connection.cursor()
     sql = f'select "{column}" from {table}'
-    if value:
-        sql += f" where {column} = {value};"
+    if value is not None:
+        sql += f' where "{column}" = ?'
+        res = cur.execute(sql, (value,))
     else:
         sql += ';'
-    res = cur.execute(sql)
+        res = cur.execute(sql)
     results = res.fetchall()
     values = [item[0] for item in results]
     return values
-
-
-def get_columns_sqlite(connection):
-    """Get all columns in the SQLite database along with their metadata."""
-    cur = connection.cursor()
-    sql = """
-        select * from sqlite_master
-        where type = 'table';
-    """
-    res = cur.execute(sql)
-    results = res.fetchall()
-
-    table_count = len(results)
-    names = [description[0] for description in cur.description]
-
-    print(f'{table_count} tables found')
-    columns = []
-    for item in results:
-        row = {name: item[i] for i, name in enumerate(names)}
-        table_name = row['name']
-        field_list = row['sql'].split('(')[1].split(')')[0].split(',')
-        for item in field_list:
-            column = {}
-            column_metadata = item.strip().split(' ')
-            column['table'] = table_name
-            column['column_name'] = column_metadata[0]
-            if len(column_metadata) > 1:
-                column['datatype'] = column_metadata[1]
-            if len(column_metadata) > 2:
-                column['key'] = column_metadata[2]
-            columns.append(column)
-    print(f'{len(columns)} columns found')
-    df = pd.DataFrame(columns)
-    return df
-
-
-def connect_to_sqlite(file_path):
-    """Connect to a SQLite database and return the connection object."""
-    connection = sqlite3.connect(file_path)
-    return connection
