@@ -123,8 +123,15 @@ class MySqlConnection:
         placeholders = ', '.join(['%s'] * len(df.columns))
         columns_string = ', '.join([f'"{col}"' for col in df.columns])
         sql = f'INSERT INTO {table_name} ({columns_string}) VALUES ({placeholders})'
-        data = [tuple(row) for _, row in df.iterrows()]
-        self.execute_sql(sql, data=data)
+        def _to_mysql_value(v):
+            if isinstance(v, pd.Timestamp):
+                return v.to_pydatetime()
+            return v
+
+        data = [tuple(_to_mysql_value(v) for v in row) for _, row in df.iterrows()]
+        chunk_size = 500
+        for i in range(0, len(data), chunk_size):
+            self.execute_sql(sql, data=data[i:i + chunk_size])
 
     def execute_sql(self, sql: str, data: list | None = None, return_results: bool = False) -> tuple[list, list]:
         if self._connection is None:

@@ -22,6 +22,7 @@ dependencies = [
 current_version = "1.0.1"
 commit = true
 tag = true
+push = true
 tag_name = "v{new_version}"
 
 [[tool.bumpversion.files]]
