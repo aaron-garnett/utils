@@ -2,7 +2,7 @@
 name = "utils"
 version = "1.0.2"
 description = "Reusable infrastructure utilities (database connectors, Google Sheets, etc.)"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 dependencies = [
     "azure-core>=1.35.1",
     "azure-identity>=1.25.1",
