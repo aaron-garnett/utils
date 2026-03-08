@@ -1,6 +1,6 @@
 [project]
 name = "utils"
-version = "1.0.3"
+version = "1.0.4"
 description = "Reusable infrastructure utilities (database connectors, Google Sheets, etc.)"
 requires-python = ">=3.10"
 dependencies = [
@@ -24,7 +24,7 @@ dev = [
 ]
 
 [tool.bumpversion]
-current_version = "1.0.3"
+current_version = "1.0.4"
 commit = true
 tag = true
 push = true
