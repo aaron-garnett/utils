@@ -15,6 +15,11 @@ dependencies = [
     "numpy>=1.26.4",
     "python-dotenv",
     "sqlalchemy>=2.0",
+    # bump-my-version removed - dev tool only
+]
+
+[dependency-groups]
+dev = [
     "bump-my-version>=1.2.7",
 ]
 
