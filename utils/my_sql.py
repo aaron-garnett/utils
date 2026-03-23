@@ -200,7 +200,13 @@ class MySqlConnection:
 # ---------------------------------------------------------------------------
 
 def ssh_connect(ssh_host: str, ssh_user: str, ssh_pw: str, host: str) -> sshtunnel.SSHTunnelForwarder:
-    """Deprecated: use MySqlConnection instead."""
+    """Open an SSH tunnel to the MySQL host.
+
+    .. deprecated::
+        Use :class:`MySqlConnection` instead. Pass ``ssh_host``, ``ssh_user``,
+        and ``ssh_pw`` directly to the constructor; the tunnel is managed
+        automatically and torn down on :meth:`MySqlConnection.close`.
+    """
     tunnel: sshtunnel.SSHTunnelForwarder = sshtunnel.SSHTunnelForwarder(
         (ssh_host, 22),
         ssh_username=ssh_user,
@@ -212,7 +218,13 @@ def ssh_connect(ssh_host: str, ssh_user: str, ssh_pw: str, host: str) -> sshtunn
 
 
 def mysql_connect(tunnel: sshtunnel.SSHTunnelForwarder, user: str, password: str, database: str | None = None) -> MySQLConnection:
-    """Deprecated: use MySqlConnection instead."""
+    """Open a MySQL connection over an existing SSH tunnel.
+
+    .. deprecated::
+        Use :class:`MySqlConnection` instead. Supply credentials to the
+        constructor and call :meth:`MySqlConnection.connect`; tunnel
+        management and MySQL authentication are handled in a single object.
+    """
     logger.debug("Connecting to MySQL database...")
     try:
         params = {
@@ -236,7 +248,15 @@ def mysql_connect(tunnel: sshtunnel.SSHTunnelForwarder, user: str, password: str
 
 
 def get_table(ssh_conn: sshtunnel.SSHTunnelForwarder, conn: MySQLConnection, table_name=None) -> pd.DataFrame:
-    """Deprecated: use MySqlConnection.read_table() instead."""
+    """Read all rows from a MySQL table into a DataFrame.
+
+    .. deprecated::
+        Use :meth:`MySqlConnection.read_table` instead. Example::
+
+            conn = MySqlConnection(host=..., user=..., password=..., ssh_host=...)
+            conn.connect()
+            df = conn.read_table("my_table")
+    """
     _validate_identifier(table_name)
     logger.debug(f"Fetching table {table_name} from database...")
     with ssh_conn:
@@ -258,7 +278,15 @@ def get_table(ssh_conn: sshtunnel.SSHTunnelForwarder, conn: MySQLConnection, tab
 
 
 def write_table(ssh_conn: sshtunnel.SSHTunnelForwarder, conn: MySQLConnection, table_name: str, df: pd.DataFrame):
-    """Deprecated: use MySqlConnection.write_table() instead."""
+    """Write a DataFrame to a MySQL table, recreating it if it exists.
+
+    .. deprecated::
+        Use :meth:`MySqlConnection.write_table` instead. Example::
+
+            conn = MySqlConnection(host=..., user=..., password=..., ssh_host=...)
+            conn.connect()
+            conn.write_table(df, "my_table")
+    """
     _validate_identifier(table_name)
     logger.debug(f"Writing DataFrame to table {table_name} in database...")
     with ssh_conn:
