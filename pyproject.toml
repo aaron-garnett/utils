@@ -1,6 +1,6 @@
 [project]
 name = "utils"
-version = "1.0.3"
+version = "1.0.4"
 description = "Reusable infrastructure utilities (database connectors, Google Sheets, etc.)"
 requires-python = ">=3.10"
 dependencies = [
@@ -15,11 +15,16 @@ dependencies = [
     "numpy>=1.26.4",
     "python-dotenv",
     "sqlalchemy>=2.0",
+    # bump-my-version removed - dev tool only
+]
+
+[dependency-groups]
+dev = [
     "bump-my-version>=1.2.7",
 ]
 
 [tool.bumpversion]
-current_version = "1.0.3"
+current_version = "1.0.4"
 commit = true
 tag = true
 push = true

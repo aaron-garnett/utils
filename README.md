@@ -7,17 +7,17 @@ Reusable infrastructure utilities for database connectivity and data I/O. Suppor
 ## Installation
 
 ```bash
-pip install -e .
+uv pip install -e .
 ```
 
 For Snowflake support:
 ```bash
-pip install -e ".[snowflake]"
+uv pip install -e ".[snowflake]"
 ```
 
 For Google BigQuery support:
 ```bash
-pip install -e ".[bigquery]"
+uv pip install -e ".[bigquery]"
 ```
 
 ---
@@ -140,6 +140,65 @@ my_sql.write_table(tunnel, conn, "my_table", df)
 
 ---
 
+## Migration Guide — MySQL shims → `MySqlConnection`
+
+The module-level functions `ssh_connect`, `mysql_connect`, `get_table`, and `write_table` are deprecated and will be removed in a future release. Replace them with the `MySqlConnection` class.
+
+### Why migrate?
+
+- The old shims open and close the SSH tunnel on every call, adding latency on every operation.
+- `MySqlConnection` opens the tunnel once on `connect()` and tears it down on `close()`, which is more efficient and less error-prone.
+- `MySqlConnection` shares a consistent interface with `AzureSqlConnection`, `SqliteConnection`, `SnowflakeConnection`, and `BigQueryConnection`, making connectors interchangeable.
+
+### Before (deprecated)
+
+```python
+from utils import my_sql
+
+tunnel = my_sql.ssh_connect(ssh_host, ssh_user, ssh_pw, host)
+tunnel.start()
+conn = my_sql.mysql_connect(tunnel, user, password, database)
+
+df = my_sql.get_table(tunnel, conn, "my_table")
+my_sql.write_table(tunnel, conn, "my_table", df)
+
+conn.close()
+tunnel.stop()
+```
+
+### After (`MySqlConnection`)
+
+```python
+from utils.my_sql import MySqlConnection
+
+conn = MySqlConnection(
+    host=host,
+    user=user,
+    password=password,
+    database=database,
+    ssh_host=ssh_host,
+    ssh_user=ssh_user,
+    ssh_pw=ssh_pw,
+)
+conn.connect()
+
+df = conn.read_table("my_table")
+conn.write_table(df, "my_table")
+
+conn.close()
+```
+
+### Mapping: old function → new method
+
+| Deprecated call | `MySqlConnection` equivalent |
+|---|---|
+| `ssh_connect(ssh_host, ssh_user, ssh_pw, host)` | Pass these as constructor arguments; tunnel starts on `connect()`. |
+| `mysql_connect(tunnel, user, password, database)` | `MySqlConnection(...).connect()` |
+| `get_table(tunnel, conn, "my_table")` | `conn.read_table("my_table")` |
+| `write_table(tunnel, conn, "my_table", df)` | `conn.write_table(df, "my_table")` |
+
+---
+
 ### `utils.sqlite` — SQLite
 
 Class-based interface for SQLite databases.
@@ -225,7 +284,7 @@ Exactly one of `private_key_path` or `password` must be provided.
 | `execute_sql_returning_df(sql)` | Executes a SELECT and returns results as a DataFrame via Snowflake's native `fetch_pandas_all()` (more efficient than `execute_sql` for large result sets). |
 | `execute_sql_script_file(path)` | Reads a `.sql` file, splits it into individual statements with `sqlparse`, and executes each one. |
 
-**Required extras:** `pip install -e ".[snowflake]"`
+**Required extras:** `uv pip install -e ".[snowflake]"`
 
 ---
 
@@ -272,7 +331,7 @@ conn.close()
 - Tables are automatically fully qualified as `project.dataset.table`. Pass a dotted name to override.
 - DDL (`create_table`, `drop_table`) is executed via `execute_sql` using standard BigQuery SQL syntax.
 
-**Required extras:** `pip install -e ".[bigquery]"`
+**Required extras:** `uv pip install -e ".[bigquery]"`
 
 ---
 
