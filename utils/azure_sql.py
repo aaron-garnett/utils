@@ -35,7 +35,7 @@ class AzureSqlConnection():
     duration of a program's execution and does not implicitly open or close the connection. Username and password are required
     for password-based authentication; if not supplied, passwordless authentication will be attempted.
     """
-    def __init__(self, server: str, database: str, schema: str, username: str | None = None, password: str | None = None, attempt_limit: int = 3, attempt_delay: int = 45, **kwargs: dict[str,Any]) -> None:
+    def __init__(self, server: str, database: str, schema: str, username: str | None = None, password: str | None = None, attempt_limit: int = 3, attempt_delay: int = 45, query_timeout: int = 0, **kwargs: dict[str,Any]) -> None:
         self.server: str = server or kwargs.get('server')
         self.database: str = database or kwargs.get('database')
         self.schema: str | None = schema or kwargs.get('schema')
@@ -43,6 +43,7 @@ class AzureSqlConnection():
         self.password: str | None = password or kwargs.get('password')
         self.attempt_limit: int = attempt_limit or kwargs.get('attempt_limit')
         self.attempt_delay: int = attempt_delay or kwargs.get('attempt_delay')
+        self.query_timeout: int = query_timeout
         self.token: dict[Any, Any] | None = None
         self.attempt_count: int = 0
         self.mssql_connection: mssql_python.Connection | None = None
@@ -117,9 +118,9 @@ class AzureSqlConnection():
         logger.info(f'Azure SQL Database connection attempt #{self.attempt_count}.')
         logger.debug(f'self.attempt_start_time: {self.attempt_start_time}, self.attempt_delay: {self.attempt_delay}, time.time(): {time.time()}')
         if self.auth_method == AuthMethod.PASSWORDLESS:
-            self.mssql_connection = mssql_python.connect(self.connection_string, attrs_before=self.token)
+            self.mssql_connection = mssql_python.connect(self.connection_string, attrs_before=self.token, timeout=self.query_timeout)
         else:
-            self.mssql_connection = mssql_python.connect(self.connection_string)
+            self.mssql_connection = mssql_python.connect(self.connection_string, timeout=self.query_timeout)
         return
 
     def connection_failure(self, exception: Exception) -> None:
