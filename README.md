@@ -72,6 +72,7 @@ conn.write_table(df, "my_table")
 | `password` | `str \| None` | SQL password (optional) |
 | `attempt_limit` | `int` | Max connection retry attempts (default: 3) |
 | `attempt_delay` | `int` | Seconds to wait between retries (default: 45) |
+| `query_timeout` | `int` | Query timeout in seconds; 0 means no timeout (default: 0) |
 
 **Additional methods**
 
