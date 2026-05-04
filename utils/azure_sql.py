@@ -146,7 +146,7 @@ class AzureSqlConnection():
             logger.debug(str(row[0]))
         return
 
-    def write_table(self, df: pd.DataFrame, table_name: str, create: bool=True, fast: bool=True, max_rows: int=10000, columns: list[str] | None = None) -> None:
+    def write_table(self, df: pd.DataFrame, table_name: str, create: bool=True, fast: bool=True, max_rows: int=10000, columns: list[str] | None = None, max_column_length: int=255) -> None:
         _validate_identifier(table_name)
         if self.schema:
             _validate_identifier(self.schema)
@@ -162,12 +162,13 @@ class AzureSqlConnection():
         if create:
             self.drop_table(table_name)
             self.create_table(table_name, columns or df_columns)
+        input_sizes = [(mssql_python.SQL_WVARCHAR, max_column_length, 0)] * len(df_columns)
         for start_row in range(0, len(data), max_rows):
             logger.info(f'Inserting rows {start_row + 1} to {min(start_row + max_rows, len(data))} ...')
             end_row = start_row + max_rows
             batch_data = data[start_row:end_row]
             sql = f"INSERT INTO {table_name} ({columns_string}) values ({insert_placeholders})"
-            self.execute_sql(sql, data=batch_data)
+            self.execute_sql(sql, data=batch_data, input_sizes=input_sizes)
         return
 
     def read_table(self, table_name: str) -> pd.DataFrame:
@@ -190,13 +191,15 @@ class AzureSqlConnection():
         df = pd.DataFrame(rows)
         return df
 
-    def execute_sql(self, sql: str, data: list | None = None, return_results: bool = False) -> tuple[list[mssql_python.cursor.Row], list[tuple[str, int]]]:
+    def execute_sql(self, sql: str, data: list | None = None, return_results: bool = False, input_sizes: list | None = None) -> tuple[list[mssql_python.cursor.Row], list[tuple[str, int]]]:
         if self.mssql_connection is None:
             raise ConnectionError('No active connection to execute SQL.')
         cursor = self.mssql_connection.cursor()
         try:
             if data is not None:
                 logger.debug(f'Executing SQL: {sql} with {len(data)} data rows.')
+                if input_sizes is not None:
+                    cursor.setinputsizes(input_sizes)
                 cursor.executemany(sql, data)
             else:
                 logger.debug(f'Executing SQL: {sql}')
