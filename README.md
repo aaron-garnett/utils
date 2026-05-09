@@ -79,7 +79,7 @@ conn.write_table(df, "my_table")
 | Method | Description |
 |---|---|
 | `connect_sqlalchemy()` | Opens and returns a SQLAlchemy connection (for pandas/ORM workflows). |
-| `write_table(df, table_name, create=True, fast=True, max_rows=10000, columns=None)` | Supports configurable batch size and optional explicit column list. |
+| `write_table(df, table_name, create=True, fast=True, max_rows=10000, columns=None, max_column_length=255)` | Supports configurable batch size and optional explicit column list. `max_column_length` pins the per-column buffer width passed to `cursor.setinputsizes` before each `executemany` call, preventing mssql_python from inferring sizes from the first row (which causes a buffer overflow when later rows have longer strings in the same column). Defaults to 255 to match the `VARCHAR(255)` columns created by `create_table`. Uses `SQL_WVARCHAR` to handle non-ASCII characters correctly. |
 
 **Auth flow**
 
