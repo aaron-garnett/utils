@@ -146,7 +146,7 @@ class AzureSqlConnection():
             logger.debug(str(row[0]))
         return
 
-    def write_table(self, df: pd.DataFrame, table_name: str, create: bool=True, fast: bool=True, max_rows: int=10000, columns: list[str] | None = None, max_column_length: int=255) -> None:
+    def write_table(self, df: pd.DataFrame, table_name: str, create: bool=True, fast: bool=True, max_rows: int=10000, columns: list[str] | None = None, max_column_length: int=255, column_lengths: dict[str, int] | None = None) -> None:
         _validate_identifier(table_name)
         if self.schema:
             _validate_identifier(self.schema)
@@ -155,14 +155,18 @@ class AzureSqlConnection():
         if self.mssql_connection is None:
             raise ConnectionError('No active connection to write data.')
         df_columns: list[str] = df.columns.tolist()
+        column_lengths = column_lengths or {}
         columns_string: str = ', '.join([f'"{column}"' for column in df_columns])
         insert_placeholders: str = ', '.join(map(lambda _: '?', df_columns))
         df = df.astype('string').fillna('')
         data: Sequence[Sequence[Any]] = list(df.itertuples(index=False, name=None))
         if create:
             self.drop_table(table_name)
-            self.create_table(table_name, columns or df_columns)
-        input_sizes = [(mssql_python.SQL_WVARCHAR, max_column_length, 0)] * len(df_columns)
+            self.create_table(table_name, columns or df_columns, column_lengths=column_lengths, default_length=max_column_length)
+        input_sizes = [
+            (mssql_python.SQL_WVARCHAR, column_lengths.get(column, max_column_length), 0)
+            for column in df_columns
+        ]
         for start_row in range(0, len(data), max_rows):
             logger.info(f'Inserting rows {start_row + 1} to {min(start_row + max_rows, len(data))} ...')
             end_row = start_row + max_rows
@@ -226,14 +230,20 @@ class AzureSqlConnection():
         self.execute_sql(sql)
         return
 
-    def create_table(self, table_name: str, columns: list[str]) -> None:
+    def create_table(self, table_name: str, columns: list[str], column_lengths: dict[str, int] | None = None, default_length: int = 255) -> None:
         _validate_identifier(table_name)
         for column in columns:
             _validate_identifier(column)
         logger.debug(f'Starting table creation for {table_name}...')
+        column_lengths = column_lengths or {}
         sql: str = f"CREATE TABLE {table_name} (\n"
         for column in columns:
-            sql += f'"{column}" varchar(255),\n'
+            length = column_lengths.get(column, default_length)
+            # mssql_python switches a bound parameter to NVARCHAR(MAX) + DAE once its
+            # column size exceeds 4000; match that here so the physical column agrees
+            # with how write_table's setinputsizes will bind values for it.
+            width = 'max' if length > 4000 else str(length)
+            sql += f'"{column}" nvarchar({width}),\n'
         sql += ");"
         self.execute_sql(sql)
         return
