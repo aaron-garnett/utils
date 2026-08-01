@@ -30,10 +30,10 @@ All database connector classes (`AzureSqlConnection`, `MySqlConnection`, `Sqlite
 |---|---|
 | `connect()` | Opens the connection. Idempotent — safe to call multiple times. |
 | `read_table(table_name)` | `SELECT *` from a table. Returns a `pd.DataFrame`. |
-| `write_table(df, table_name, create=True)` | Writes a DataFrame to a table. When `create=True` (default), drops and recreates the table first. All columns written as `VARCHAR(255)` / `TEXT`. |
+| `write_table(df, table_name, create=True, column_lengths=None)` | Writes a DataFrame to a table. When `create=True` (default), drops and recreates the table first. Azure SQL columns default to `NVARCHAR`; pass a `column_lengths` dict for per-column width overrides (widths >4000 use `NVARCHAR(MAX)`). Other backends use `TEXT`. |
 | `execute_sql(sql, data=None, return_results=False)` | Executes a SQL string. Pass `data` as a list of tuples for parameterized batch execution. Returns `(rows, description)` when `return_results=True`. |
 | `drop_table(table_name)` | `DROP TABLE IF EXISTS`. |
-| `create_table(table_name, columns)` | Creates a table with all columns as `VARCHAR(255)` / `TEXT`. |
+| `create_table(table_name, columns, column_lengths=None)` | Creates a table. Azure SQL columns default to `NVARCHAR`; pass a `column_lengths` dict for per-column width overrides. Other backends use `TEXT`. |
 | `basic_connectivity_test()` | Executes a trivial query to verify the connection is live. |
 | `get_columns()` | Returns a `pd.DataFrame` of all columns in the schema with `table`, `column_name`, `datatype`, and `key` fields. |
 | `close()` | Closes the connection (and SSH tunnel, where applicable). |
@@ -79,7 +79,7 @@ conn.write_table(df, "my_table")
 | Method | Description |
 |---|---|
 | `connect_sqlalchemy()` | Opens and returns a SQLAlchemy connection (for pandas/ORM workflows). |
-| `write_table(df, table_name, create=True, fast=True, max_rows=10000, columns=None)` | Supports configurable batch size and optional explicit column list. |
+| `write_table(df, table_name, create=True, fast=True, max_rows=10000, columns=None, column_lengths=None)` | Supports configurable batch size, optional explicit column list, and per-column width overrides via `column_lengths` dict. Columns default to `NVARCHAR`; widths >4000 use `NVARCHAR(MAX)`. |
 
 **Auth flow**
 
@@ -407,7 +407,7 @@ Thin wrappers around `pygsheets` for reading and writing Google Sheets via a ser
 
 ### Medium-term
 
-- **Type-aware writes** — infer SQL column types from DataFrame dtypes instead of defaulting everything to `VARCHAR(255)` / `TEXT`.
+- **Type-aware writes** — infer SQL column types from DataFrame dtypes instead of defaulting string columns to `NVARCHAR`. Per-column widths can already be set via `column_lengths`; full dtype-to-SQL-type inference remains a future goal.
 - **Google Sheets read support** — a `read_df_from_google_sheet` counterpart to `write_df_to_google_sheet`.
 - **Retry logic** — extend the configurable retry pattern from `AzureSqlConnection` to `MySqlConnection` and `SnowflakeConnection`.
 - **`database_mining` MySQL compatibility** — make `get_column_values` and related functions work with `%s` placeholder style to support MySQL connections.
