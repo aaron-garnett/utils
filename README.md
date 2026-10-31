@@ -6,6 +6,8 @@ Reusable infrastructure utilities for database connectivity and data I/O. Suppor
 
 ## Installation
 
+**Requirements:** Python 3.11+
+
 ```bash
 uv pip install -e .
 ```
@@ -285,7 +287,7 @@ Exactly one of `private_key_path` or `password` must be provided.
 | `execute_sql_returning_df(sql)` | Executes a SELECT and returns results as a DataFrame via Snowflake's native `fetch_pandas_all()` (more efficient than `execute_sql` for large result sets). |
 | `execute_sql_script_file(path)` | Reads a `.sql` file, splits it into individual statements with `sqlparse`, and executes each one. |
 
-**Required extras:** `uv pip install -e ".[snowflake]"`
+**Required extras:** `uv pip install -e ".[snowflake]"` — minimum `snowflake-connector-python>=5.1.0` (pinned in `pyproject.toml`)
 
 ---
 
